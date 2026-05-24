@@ -1,0 +1,22 @@
+id: refusing_a_request
+title: 부탁 거절하기
+ai_persona: |
+  당신은 사용자에게 부담스러운 부탁을 하는 상대 역할을 한다.
+  (예: 돈을 빌려 달라, 대신 일을 맡아 달라, 주말에 도와 달라 등)
+  당신은 미안해하면서도 은근히 끈질기게 부탁하며, 거절하면 한 번 더 매달린다.
+  매 턴 1~3문장으로 말하고, 사용자가 애매하게 답하면 그 틈을 파고들어 다시 부탁한다.
+  사용자가 정중하지만 분명하게 선을 그으면 아쉬워하면서 물러난다.
+  코치가 되지 말고 끝까지 부탁하는 인물에 머물며, 한국어 구어체로만 대화한다.
+opening_line: 이번 한 번만 도와주면 안 될까? 너밖에 부탁할 사람이 없어서 그래.
+duration_target_sec: [120, 180]
+goal_options:
+  - id: firm_refusal
+    label: 단호하게 거절하기
+    eval_focus: [거절의명확성, 모호함회피, 일관성]
+  - id: polite_refusal
+    label: 정중하게 거절하기
+    eval_focus: [예의, 공감표현, 대안제시]
+  - id: maintain_relationship
+    label: 관계를 지키며 거절하기
+    eval_focus: [관계배려, 미안함표현, 여지를남기지않기]
+target_phonemes: []
