@@ -156,13 +156,18 @@ class ClaudeLLM:
         )
         return _text_from(msg)
 
+    # 8192: synth_data의 interview/presentation bad 대화처럼 사용자 턴이 길고 턴 수가
+    # 많을 때 응답이 2048에서 잘려 JSON 파싱 실패 → 빈 dict 반환되는 사고가 있었다.
+    # 출력 토큰은 실제 사용량만큼만 과금되므로 상한만 올린다.
+    _CHAT_JSON_MAX_TOKENS = 8192
+
     async def chat_json(self, system: str, user: str, schema: dict) -> dict:
         sys = system + " 반드시 유효한 JSON 객체 하나만 출력한다."
         prompt = user + "\n\n" + schema_instruction(schema)
         for attempt in range(2):
             msg = await self.client.messages.create(
                 model=self.model,
-                max_tokens=2048,
+                max_tokens=self._CHAT_JSON_MAX_TOKENS,
                 temperature=0.4,
                 system=sys,
                 messages=[{"role": "user", "content": prompt}],

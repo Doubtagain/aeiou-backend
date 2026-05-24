@@ -77,6 +77,7 @@ async def main() -> None:
     print(f"(use_mocks={settings.use_mocks})")
     results = []
     for sid, gid, cat, expected in SCENARIOS:
+        is_required = cat in {"emotional", "interview"}
         try:
             r = await _one(sid, gid, cat, expected)
             results.append(r)
@@ -87,19 +88,32 @@ async def main() -> None:
                 f"tail={r['tail_clarity']}"
             )
         except Exception as exc:  # noqa: BLE001
-            results.append({"category": cat, "error": repr(exc)})
+            # 에러 레코드도 required_category 플래그를 유지해 PASS 판정에서 누락되지 않게 한다.
+            # passed_required_check는 False로 강제 → 에러는 곧 실패.
+            results.append(
+                {
+                    "situation_id": sid,
+                    "category": cat,
+                    "error": repr(exc),
+                    "passed_required_check": False,
+                    "required_category": is_required,
+                }
+            )
             print(f"  [{cat:>13}] ERROR: {exc}")
 
     required = [r for r in results if r.get("required_category")]
-    passed = required and all(r.get("passed_required_check") for r in required)
+    passed = bool(required) and all(r.get("passed_required_check") for r in required)
 
     print("\n=== H5: coaching tips trigger reasonably on bad sessions ===")
     for r in required:
         flag = "PASS" if r.get("passed_required_check") else "FAIL"
-        print(
-            f"  {r['category']:>13}: fired={r['fired_tips']}  "
-            f"expected any of {r['expected_any_of']}  [{flag}]"
-        )
+        if "error" in r:
+            print(f"  {r['category']:>13}: ERROR ({r['error'][:80]})  [{flag}]")
+        else:
+            print(
+                f"  {r['category']:>13}: fired={r['fired_tips']}  "
+                f"expected any of {r['expected_any_of']}  [{flag}]"
+            )
     print(f"  H5 RESULT: {'PASS' if passed else 'FAIL'}")
 
     out = {
