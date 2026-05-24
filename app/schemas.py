@@ -25,6 +25,13 @@ class SituationOut(BaseModel):
     # v3 신규: 카탈로그 분류 & 난이도. 기존 호출자 호환을 위해 기본값 제공.
     category: SituationCategory = "emotional"
     difficulty: int = 1
+    # v3 Step 7: 'official' = YAML 카탈로그 / 'user' = POST /situations/custom 생성
+    author: Literal["official", "user"] = "official"
+
+
+class CustomSituationIn(BaseModel):
+    description: str = Field(..., min_length=1, description="사용자가 자유 텍스트로 묘사한 상황")
+    category_hint: Optional[SituationCategory] = None
 
 
 # ---------- sessions ----------

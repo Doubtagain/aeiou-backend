@@ -236,6 +236,8 @@ class MockLLM:
             return self._judge(data)
         if "weak_words" in keys:
             return self._weak_words(data)
+        if "situation" in keys:
+            return self._situation(data)
         return {k: None for k in keys}
 
     # -- dialogue script generation (synth_data) --
@@ -301,6 +303,52 @@ class MockLLM:
                 }
             )
         return {"rewrites": rewrites}
+
+    # -- v3 custom situation generation (Step 7) --
+    def _situation(self, data: Any) -> dict:
+        data = data or {}
+        desc = (data.get("description") or "").strip() if isinstance(data, dict) else ""
+        hint = (data.get("category_hint") or "emotional") if isinstance(data, dict) else "emotional"
+        hint = hint if hint in {"emotional", "interview", "presentation", "business"} else "emotional"
+        # 타이틀: 설명 첫 30자
+        title = (desc[:30] + "…") if len(desc) > 30 else (desc or "사용자 맞춤 상황")
+        # ID: hash로 결정론
+        digest = hashlib.md5(desc.encode("utf-8")).hexdigest()[:8]
+        sid = f"user_{hint}_{digest}"
+        return {
+            "situation": {
+                "id": sid,
+                "title": title,
+                "category": hint,
+                "difficulty": 2,
+                "ai_persona": (
+                    "당신은 사용자가 묘사한 상황의 상대 역할이다. "
+                    "매 턴 1~3문장으로 한국어 구어체로 자연스럽게 반응한다. "
+                    "코치가 되지 말고 끝까지 인물에 머문다. "
+                    "사용자가 모호하게 말하면 한 번 더 짚어 묻는다. "
+                    "현실적인 톤으로, 과장된 신파나 폭언은 피한다. "
+                    "필요할 때만 후속 질문으로 유도하고, 답을 대신 주지 않는다."
+                ),
+                "opening_line": "안녕하세요. 편하게 말씀해 주세요. 어떤 점부터 이야기해보고 싶으세요?",
+                "duration_target_sec": [120, 240],
+                "answer_length_guideline_sec": (
+                    60 if hint == "interview" else 90 if hint == "presentation" else 30
+                ),
+                "goal_options": [
+                    {
+                        "id": "primary_goal",
+                        "label": "핵심 메시지를 분명히 전달하기",
+                        "eval_focus": ["핵심우선", "결론먼저", "명확성"],
+                    },
+                    {
+                        "id": "audience_aware",
+                        "label": "상대 입장을 고려해 말하기",
+                        "eval_focus": ["공감표현", "상호존중", "맞춤형설명"],
+                    },
+                ],
+                "target_phonemes": [],
+            }
+        }
 
     # -- v3 pronunciation: heuristic mock weak-word picker --
     def _weak_words(self, data: Any) -> dict:

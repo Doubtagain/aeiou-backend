@@ -30,6 +30,9 @@ class Settings:
         self.anthropic_api_key: str | None = os.getenv("ANTHROPIC_API_KEY") or None
         self.openai_api_key: str | None = os.getenv("OPENAI_API_KEY") or None
         self.use_mocks: bool = _as_bool(os.getenv("USE_MOCKS"))
+        # v3: 사용자 맞춤 상황 생성 게이트(POST /situations/custom).
+        # 헤더 X-Premium: true가 동일한 효과를 낸다 — 실 결제 모듈은 비범위.
+        self.enable_premium: bool = _as_bool(os.getenv("ENABLE_PREMIUM"))
 
         self.anthropic_model: str = os.getenv("ANTHROPIC_MODEL", "claude-sonnet-4-6")
         self.openai_stt_model: str = os.getenv("OPENAI_STT_MODEL", "whisper-1")

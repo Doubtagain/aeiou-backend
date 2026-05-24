@@ -47,8 +47,16 @@ class Situation(Base):
 
     id: Mapped[str] = mapped_column(String(64), primary_key=True)  # snake_case
     title: Mapped[str] = mapped_column(String(255))
-    yaml_path: Mapped[str] = mapped_column(String(512))
+    yaml_path: Mapped[str] = mapped_column(String(512), default="")
     active: Mapped[bool] = mapped_column(Boolean, default=True)
+    # v3: 'official' = YAML 카탈로그 / 'user' = POST /situations/custom 생성
+    author: Mapped[str] = mapped_column(String(16), default="official")
+    # v3: user 생성 시 YAML 동등 dict를 그대로 저장. official 행은 None.
+    payload: Mapped[Optional[Any]] = mapped_column(JSON, nullable=True)
+    # v3: 미래의 멀티유저 대비; PoC에서는 None 허용.
+    user_id: Mapped[Optional[str]] = mapped_column(
+        ForeignKey("users.id"), nullable=True
+    )
 
 
 class Session(Base):
