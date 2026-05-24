@@ -28,13 +28,18 @@ Trigger = Callable[[Any, Optional[str]], bool]
 
 # 카테고리별 "답변이 너무 길다" 임계 (초). lead_with_conclusion의 두 번째 조건에 사용.
 # emotional은 짧게 끊어 말하는 게 자연스럽고, interview/presentation은 길게 말해도 정상이다.
+#
+# v3.1 calibration (2026-05): 실 API에서 Claude가 bad 페르소나로 생성한 평균 길이가
+# emotional 13.6s / interview 25.2s / presentation 31.8s 였다 — prompt 지시(35s+)의
+# 약 70%. 임계를 실측 분포에 맞춰 낮춰 잡았다. 의미적으로도 goal_alignment가 매우 낮은
+# (≈1.0) 사용자에게는 20초+ 답변에서도 "핵심부터 말하세요" 조언이 유효하다.
 _LEAD_SEC_THRESHOLD: dict[str, float] = {
     "emotional": 10.0,
-    "interview": 30.0,
-    "presentation": 45.0,
-    "business": 25.0,
+    "interview": 20.0,
+    "presentation": 30.0,
+    "business": 20.0,
 }
-_LEAD_SEC_DEFAULT = 25.0  # 카테고리 미상 시 (하위 호환)
+_LEAD_SEC_DEFAULT = 20.0  # 카테고리 미상 시
 
 
 def _lead_sec_threshold(category: Optional[str]) -> float:

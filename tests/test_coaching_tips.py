@@ -85,12 +85,18 @@ def test_lead_with_conclusion_uses_emotional_threshold():
 
 
 def test_lead_with_conclusion_uses_presentation_threshold():
-    """presentation 카테고리는 45초 임계 → 40초는 미달이라 발화하지 않음."""
+    """presentation 카테고리는 30초 임계 → 25초는 미달이라 발화하지 않음."""
     tips = generate_coaching_tips(
-        _analysis(flow_goal_alignment=2.0, answer_length_sec_mean=40.0),
+        _analysis(flow_goal_alignment=2.0, answer_length_sec_mean=25.0),
         category="presentation",
     )
     assert all(t.id != "lead_with_conclusion" for t in tips)
+    # 임계 초과(35초)는 발화해야 한다 (양방향 확인).
+    fires = generate_coaching_tips(
+        _analysis(flow_goal_alignment=2.0, answer_length_sec_mean=35.0),
+        category="presentation",
+    )
+    assert any(t.id == "lead_with_conclusion" for t in fires)
 
 
 def test_lead_with_conclusion_unknown_category_falls_back_to_default():
