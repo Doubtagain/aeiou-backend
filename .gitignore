@@ -24,6 +24,9 @@ ENV/
 # Internal-only docs (not for public repo)
 internal/
 
+# External-share artifacts (drafts to send out, also not in public repo)
+external/
+
 # DB
 *.db
 *.sqlite
