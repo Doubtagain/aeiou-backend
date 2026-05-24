@@ -190,6 +190,29 @@ _MOCK_AI_LINES = [
     "…그 말 들으니까 마음이 좀 복잡하다.",
 ]
 
+# Canned dialogues for synth_data --mock (user-first, alternating). Generic but
+# plausible; the situation-specific opening line is prepended by synth_data.
+_MOCK_DIALOGUE_GOOD = [
+    ("user", "응, 오늘은 너한테 꼭 분명하게 말하고 싶었어."),
+    ("ai", "그래, 듣고 있어. 편하게 말해 줘."),
+    ("user", "우리 관계를 여기서 깔끔하게 정리하는 게 서로에게 맞다고 생각해."),
+    ("ai", "그렇게 결론 내린 이유를 들어도 될까?"),
+    ("user", "함께한 시간은 정말 소중했지만, 지금은 각자의 길을 가는 게 맞아."),
+    ("ai", "마음은 아프지만 네 진심은 잘 알겠어."),
+    ("user", "그동안 고마웠고, 너도 나도 더 좋은 사람으로 지내길 바라."),
+    ("ai", "고마워. 네 말 덕분에 나도 마음을 정리할 수 있을 것 같아."),
+]
+_MOCK_DIALOGUE_BAD = [
+    ("user", "음… 그 뭐랄까, 그냥 좀 어… 그게 말이야."),
+    ("ai", "천천히 말해도 돼. 무슨 얘기야?"),
+    ("user", "어… 그냥 막 그게, 딱히 뭐 그런 건 아닌데 어쨌든 좀 그래."),
+    ("ai", "그게 다야? 진심이 잘 안 느껴져."),
+    ("user", "글쎄… 잘 모르겠어. 그냥 뭐 어떻게 해야 할지 음 모르겠어."),
+    ("ai", "네가 원하는 게 뭔지 말해 줄 수 있어?"),
+    ("user", "막 그냥 어… 나중에 얘기하면 안 될까? 지금은 좀 그래."),
+    ("ai", "자꾸 피하는 것 같아서 속상해."),
+]
+
 
 class MockLLM:
     """Deterministic. Dispatches on `schema` keys, reads input JSON from `user`."""
@@ -201,6 +224,8 @@ class MockLLM:
     async def chat_json(self, system: str, user: str, schema: dict) -> dict:
         keys = set(schema or {})
         data = extract_json_block(user)
+        if "dialogue" in keys:
+            return self._dialogue(data)
         if "classifications" in keys:
             return self._fillers(data)
         if "rewrites" in keys:
@@ -210,6 +235,20 @@ class MockLLM:
         if "scores" in keys:
             return self._judge(data)
         return {k: None for k in keys}
+
+    # -- dialogue script generation (synth_data) --
+    def _dialogue(self, data: Any) -> dict:
+        quality = (data or {}).get("quality", "good") if isinstance(data, dict) else "good"
+        if quality == "bad":
+            turns = _MOCK_DIALOGUE_BAD
+        elif quality == "mixed":
+            # alternate good/bad user turns
+            turns = []
+            for i, (g, b) in enumerate(zip(_MOCK_DIALOGUE_GOOD, _MOCK_DIALOGUE_BAD)):
+                turns.append(b if (g[0] == "user" and i % 2 == 0) else g)
+        else:
+            turns = _MOCK_DIALOGUE_GOOD
+        return {"dialogue": [{"speaker": s, "text": t} for s, t in turns]}
 
     # -- filler classification --
     def _fillers(self, data: Any) -> dict:
