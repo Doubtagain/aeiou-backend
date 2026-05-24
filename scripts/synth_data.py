@@ -44,6 +44,27 @@ _QUALITY_NOTE = {
     "mixed": "사용자 발화 중 일부는 다듬어지고 일부는 군말·회피가 섞이도록 번갈아 작성하라.",
 }
 
+# v3 Step 9: bad 모드에 카테고리별 패턴을 덧붙여 H5(코칭 카드) 검증 신호를 강화.
+_BAD_CATEGORY_NOTE = {
+    "emotional": (
+        " 정서 상황답게 필러를 많이 섞고, 본심을 회피하며 둘러말하라. "
+        "끝음을 흐리게 마무리하라."
+    ),
+    "interview": (
+        " 면접 답변은 결론 없이 장황하게, 두서없이 이어가라. "
+        "한 답변이 길어지도록(STAR의 Action·Result 부분을 늘어놓듯) 늘어뜨려라. "
+        "결론은 끝까지 등장시키지 말라."
+    ),
+    "presentation": (
+        " 발표는 청자(임원)의 관심사를 무시하고 기술 디테일에 몰두하라. "
+        "각 문장의 끝을 흐리게 말끝 흐리듯 마무리하라."
+    ),
+    "business": (
+        " 비즈니스 요청은 핵심부터 말하지 말고 배경설명을 길게 늘어놓아라. "
+        "결론은 가장 마지막에만 짧게 언급하라."
+    ),
+}
+
 
 def _dur_ms(path: Path) -> int:
     import soundfile as sf
@@ -55,20 +76,29 @@ def _dur_ms(path: Path) -> int:
         return 0
 
 
+def _quality_note(quality: str, category: str | None) -> str:
+    base = _QUALITY_NOTE.get(quality, _QUALITY_NOTE["good"])
+    if quality == "bad" and category:
+        return base + _BAD_CATEGORY_NOTE.get(category, "")
+    return base
+
+
 def _build_user(situation: dict, goal: dict, quality: str) -> str:
+    category = situation.get("category")
     payload = {
         "situation_id": situation["id"],
         "title": situation["title"],
         "goal": goal["label"],
         "eval_focus": goal.get("eval_focus", []),
         "quality": quality,
+        "category": category,
     }
     return (
-        f"상황: {situation['title']}\n"
+        f"상황: {situation['title']} (카테고리: {category or 'emotional'})\n"
         f"AI 페르소나:\n{situation['ai_persona']}\n"
         f"AI의 첫 발화(이미 말했음): {situation['opening_line']}\n"
         f"사용자의 목표: {goal['label']} (포커스: {', '.join(goal.get('eval_focus', []))})\n"
-        f"작성 지침: {_QUALITY_NOTE.get(quality, _QUALITY_NOTE['good'])}\n"
+        f"작성 지침: {_quality_note(quality, category)}\n"
         "위 'AI의 첫 발화' 다음의 사용자 발화부터 시작해, user와 ai가 번갈아 말하는 "
         "8~16턴 대화를 작성하라.\n"
         + json.dumps(payload, ensure_ascii=False)
@@ -186,9 +216,29 @@ def main() -> None:
     p.add_argument("--situation", required=True)
     p.add_argument("--goal", required=True)
     p.add_argument("--quality", choices=["good", "bad", "mixed"], default="good")
+    p.add_argument(
+        "--category",
+        choices=["emotional", "interview", "presentation", "business"],
+        help=(
+            "참고용 카테고리 힌트. 일반적으로 situation YAML이 이미 category를 갖고 있으므로 "
+            "지정하지 않아도 됨. 지정 시 YAML 값을 덮어쓰는 게 아니라 일관성만 확인한다."
+        ),
+    )
     p.add_argument("--out", required=True, help="output dir, e.g. data/audio/session_001")
     p.add_argument("--mock", action="store_true", help="force deterministic offline mocks")
     args = p.parse_args()
+
+    # category 인자는 일관성 확인용. 실제 dialogue는 YAML의 category를 사용한다.
+    if args.category is not None:
+        from app.situations import load_situation  # noqa: PLC0415
+
+        yaml_cat = load_situation(args.situation).get("category")
+        if yaml_cat and yaml_cat != args.category:
+            print(
+                f"WARNING: --category={args.category} but YAML says {yaml_cat}. "
+                "YAML wins.",
+                file=sys.stderr,
+            )
 
     session_id = asyncio.run(
         synth_session(args.situation, args.goal, args.quality, args.out)

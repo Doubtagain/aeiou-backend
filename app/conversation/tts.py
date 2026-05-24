@@ -9,7 +9,9 @@ from ..config import settings
 SAMPLE_RATE = 16000
 _SEC_PER_CHAR = 0.09  # ~ Korean speaking pace for mock duration
 _MIN_SEC = 0.6
-_MAX_SEC = 25.0
+# v3: 120s까지 허용해 interview(임계 60s) / presentation(90s) bad mock 세션에서도
+# too_long_turn_count가 합리적으로 잡힌다. 실제 한국어 한 발화로는 거의 도달 못 함.
+_MAX_SEC = 120.0
 
 
 def mock_duration_sec(text: str) -> float:
