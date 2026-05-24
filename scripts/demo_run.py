@@ -66,6 +66,10 @@ def _metrics(an) -> dict:
             "sec_stdev": an.answer_length_sec_stdev,
             "too_long_turn_count": an.too_long_turn_count,
         },
+        "repetition": {
+            "repeated_phrase_count": an.repeated_phrase_count,
+            "repetition_ratio": an.repetition_ratio,
+        },
     }
 
 

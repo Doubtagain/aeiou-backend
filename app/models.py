@@ -125,6 +125,10 @@ class SessionAnalysis(Base):
     answer_length_sec_stdev: Mapped[Optional[float]] = mapped_column(Float, nullable=True)
     too_long_turn_count: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)
 
+    # v3: 반복 표현 (필러와 분리; 사용자 고유 n-gram 빈도)
+    repeated_phrase_count: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)
+    repetition_ratio: Mapped[Optional[float]] = mapped_column(Float, nullable=True)
+
     # 메타
     judge_runs: Mapped[Optional[Any]] = mapped_column(JSON, nullable=True)
     judge_variance: Mapped[Optional[Any]] = mapped_column(JSON, nullable=True)

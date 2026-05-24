@@ -19,6 +19,7 @@ from ..situations import load_situation
 from .compare import compare_sessions
 from .fillers import analyze_fillers
 from .judge import judge_flow, judge_improv, judge_variance_report
+from .repetition import detect_repetitions
 from .rewrite import recommend_rewrites
 from .signal_metrics import (
     compute_answer_lengths,
@@ -130,6 +131,11 @@ async def run_analysis(
         )
         vocab = _vocab_structure(user_text)
 
+        # 5b. v3: 반복 표현 (필러와 분리; 사용자 고유 n-gram)
+        repetitions = detect_repetitions(
+            [(t.transcript_verbatim or t.transcript or "") for t in user_turns]
+        )
+
         # 6. LLM-as-judge (3 runs each)
         flow = await judge_flow(session, llm)
         improv = await judge_improv(session, llm)
@@ -161,6 +167,9 @@ async def run_analysis(
             answer_length_sec_mean=answer_lengths["sec_mean"],
             answer_length_sec_stdev=answer_lengths["sec_stdev"],
             too_long_turn_count=len(answer_lengths["too_long_turns"]),
+            # v3 — 반복 표현
+            repeated_phrase_count=len(repetitions["repeated_phrases"]),
+            repetition_ratio=repetitions["repetition_ratio"],
             judge_runs={"flow": flow.runs, "improv": improv.runs},
             judge_variance={
                 "flow": flow.stdev,
@@ -174,7 +183,8 @@ async def run_analysis(
 
         # 8. persist + JSON dump
         payload = _build_payload(
-            session, analysis, delivery, vocab, filler_details, variance, answer_lengths
+            session, analysis, delivery, vocab, filler_details, variance,
+            answer_lengths, repetitions,
         )
         payload["rewrites"] = [
             {"source_turn_id": r.source_turn_id, "original_text": r.original_text, "variants": r.rewrites}
@@ -216,7 +226,8 @@ async def analyze_and_compare(
 
 
 def _build_payload(
-    session, analysis, delivery, vocab, filler_details, variance, answer_lengths
+    session, analysis, delivery, vocab, filler_details, variance,
+    answer_lengths, repetitions,
 ) -> dict:
     return {
         "session_id": session.id,
@@ -257,9 +268,16 @@ def _build_payload(
                 "per_turn": answer_lengths.get("per_turn", []),
                 "too_long_turns": answer_lengths.get("too_long_turns", []),
             },
+            "repetition": {
+                "repeated_phrase_count": analysis.repeated_phrase_count,
+                "repetition_ratio": analysis.repetition_ratio,
+                "repeated_phrases": repetitions.get("repeated_phrases", []),
+                "total_tokens": repetitions.get("total_tokens", 0),
+            },
         },
         "vocab": vocab,
         "fillers": filler_details,
+        "repeated_phrases": repetitions.get("repeated_phrases", []),  # MIGRATION raw_payload 요구
         "judge": {
             "runs": analysis.judge_runs,
             "variance": variance,

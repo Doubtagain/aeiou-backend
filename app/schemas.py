@@ -91,6 +91,10 @@ class AnalysisOut(BaseModel):
     answer_length_sec_stdev: Optional[float] = None
     too_long_turn_count: Optional[int] = None
 
+    # v3 — 반복 표현 (raw_payload.repeated_phrases에 상세)
+    repeated_phrase_count: Optional[int] = None
+    repetition_ratio: Optional[float] = None
+
     judge_runs: Optional[Any] = None
     judge_variance: Optional[Any] = None
 
