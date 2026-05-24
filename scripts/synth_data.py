@@ -182,7 +182,7 @@ async def synth_session(
 
 
 def main() -> None:
-    p = argparse.ArgumentParser(description="Generate a synthetic VoiceUp session.")
+    p = argparse.ArgumentParser(description="Generate a synthetic AEIOU session.")
     p.add_argument("--situation", required=True)
     p.add_argument("--goal", required=True)
     p.add_argument("--quality", choices=["good", "bad", "mixed"], default="good")

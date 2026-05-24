@@ -1,4 +1,4 @@
-# VoiceUp PoC — dependencies
+# AEIOU PoC — dependencies
 # Install everything:  pip install -r requirements.txt
 #
 # The mocked pytest suite passes with just the "core" group below.

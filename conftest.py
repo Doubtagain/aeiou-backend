@@ -8,7 +8,7 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 # Tests must never touch real external APIs.
 os.environ.setdefault("USE_MOCKS", "1")
 
-# Tests use a throwaway SQLite file, not the project's voiceup.db.
+# Tests use a throwaway SQLite file, not the project's aeiou.db.
 os.environ.setdefault(
-    "DATABASE_URL", "sqlite:///" + os.path.join(tempfile.gettempdir(), "voiceup_test.db")
+    "DATABASE_URL", "sqlite:///" + os.path.join(tempfile.gettempdir(), "aeiou_test.db")
 )

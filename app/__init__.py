@@ -1,1 +1,1 @@
-"""VoiceUp PoC backend package."""
+"""AEIOU PoC backend package (구 VoiceUp)."""

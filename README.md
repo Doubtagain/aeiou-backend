@@ -1,6 +1,6 @@
-# VoiceUp PoC
+# AEIOU PoC (구 VoiceUp)
 
-한국어 대화 코칭 서비스 **VoiceUp**의 가설 검증용 PoC 백엔드. 사용자가 일상 상황(이별·사과·고백·갈등·거절)을 골라 AI와 음성 대화를 한 뒤, **표현 흐름·즉흥 대응·전달력**에 대한 코칭 리포트를 받는다.
+한국어 **실전 말하기 코치 AEIOU**의 가설 검증용 PoC 백엔드. 사용자가 정서 상황(이별·사과·고백·갈등·거절)과 면접·발표 시나리오를 골라 AI와 음성 대화를 한 뒤, **표현 흐름·즉흥 대응·전달력**에 대한 코칭 리포트를 받는다.
 
 > 이 코드의 목적은 "보이는 것"을 만드는 게 아니라 **가설(H1~H4)을 검증**하는 것이다. 전체 설계는 [`SPEC.md`](./SPEC.md) 참조.
 
@@ -69,7 +69,7 @@ $ pytest
 ```bash
 # 키 설정 후
 python scripts/demo_run.py
-python scripts/eval_judge_variance.py --runs 5
+python scripts/eval_judge_variance.py --runs 3
 python scripts/eval_retake_diff.py
 ```
 

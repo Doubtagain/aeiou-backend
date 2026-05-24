@@ -1,7 +1,7 @@
 [project]
-name = "voiceup-poc"
+name = "aeiou-poc"
 version = "0.1.0"
-description = "VoiceUp PoC backend — Korean conversation coaching, hypothesis-validation build"
+description = "AEIOU PoC backend (구 VoiceUp) — Korean speaking coach, hypothesis-validation build"
 requires-python = ">=3.11"
 dependencies = [
     "fastapi>=0.115",

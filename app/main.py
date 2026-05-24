@@ -21,7 +21,7 @@ async def lifespan(app: FastAPI):
     yield
 
 
-app = FastAPI(title="VoiceUp PoC", version="0.1.0", lifespan=lifespan)
+app = FastAPI(title="AEIOU PoC", version="0.1.0", lifespan=lifespan)
 
 app.mount("/static/audio", StaticFiles(directory=str(AUDIO_DIR)), name="audio")
 

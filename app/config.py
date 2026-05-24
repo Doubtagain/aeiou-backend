@@ -36,7 +36,7 @@ class Settings:
         self.openai_tts_model: str = os.getenv("OPENAI_TTS_MODEL", "gpt-4o-mini-tts")
 
         self.database_url: str = os.getenv(
-            "DATABASE_URL", f"sqlite:///{BASE_DIR / 'voiceup.db'}"
+            "DATABASE_URL", f"sqlite:///{BASE_DIR / 'aeiou.db'}"
         )
 
         for d in (DATA_DIR, AUDIO_DIR, RESULTS_DIR):
