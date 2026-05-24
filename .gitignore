@@ -5,14 +5,21 @@ __pycache__/
 .eggs/
 build/
 dist/
+*.so
+.python-version
 
 # venv
 .venv/
 venv/
 env/
+ENV/
 
 # Env / secrets
 .env
+.env.local
+.env.*.local
+*.pem
+*.key
 
 # DB
 *.db
@@ -24,13 +31,23 @@ data/audio/**/*.wav
 data/audio/**/*.json
 data/results/*.json
 
+# Logs
+*.log
+logs/
+
 # OS / IDE
 .DS_Store
+Thumbs.db
 .idea/
 .vscode/
 *.swp
+*.swo
 
-# pytest / coverage
+# pytest / coverage / type-check / lint caches
 .pytest_cache/
 .coverage
+.coverage.*
 htmlcov/
+.mypy_cache/
+.ruff_cache/
+.tox/
