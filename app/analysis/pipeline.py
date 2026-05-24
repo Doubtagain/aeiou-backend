@@ -15,6 +15,7 @@ from ..conversation.llm import get_llm
 from ..conversation.stt import get_stt
 from ..db import session_scope
 from ..models import RecommendedRewrite, Session, SessionAnalysis
+from .compare import compare_sessions
 from .fillers import analyze_fillers
 from .judge import judge_flow, judge_improv, judge_variance_report
 from .rewrite import recommend_rewrites
@@ -171,6 +172,24 @@ async def run_analysis(
         # `analysis` is a transient copy (merge created the managed one); its
         # plain-Python attributes remain usable after the session closes.
         return analysis
+
+
+async def analyze_and_compare(
+    session_id: str, stt: "STT | None" = None, llm: "LLM | None" = None
+) -> SessionAnalysis:
+    """Run analysis and, if this is a retake whose parent is already analyzed,
+    persist a RetakeComparison (so GET /comparisons/{id} works via the API)."""
+    llm = llm or get_llm()
+    analysis = await run_analysis(session_id, stt=stt, llm=llm)
+    with session_scope() as db:
+        session = db.get(Session, session_id)
+        if session and session.parent_session_id:
+            parent = db.get(Session, session.parent_session_id)
+            parent_an = db.get(SessionAnalysis, session.parent_session_id)
+            if parent is not None and parent_an is not None:
+                comparison = await compare_sessions(parent, session, llm)
+                db.add(comparison)
+    return analysis
 
 
 def _build_payload(session, analysis, delivery, vocab, filler_details, variance) -> dict:
