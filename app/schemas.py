@@ -136,3 +136,15 @@ class CoachingOut(BaseModel):
 
     tips: list[CoachingTipOut] = Field(default_factory=list)
     rewrites: list[RewriteOut] = Field(default_factory=list)
+
+
+# ---------- v3: 발음 분석 ----------
+class WeakWordOut(BaseModel):
+    turn_index: int
+    word: str
+    phoneme_focus: str
+    articulation_tip: str
+
+
+class PronunciationOut(BaseModel):
+    weak_words: list[WeakWordOut] = Field(default_factory=list)

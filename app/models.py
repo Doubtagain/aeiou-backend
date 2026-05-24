@@ -129,6 +129,9 @@ class SessionAnalysis(Base):
     repeated_phrase_count: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)
     repetition_ratio: Mapped[Optional[float]] = mapped_column(Float, nullable=True)
 
+    # v3: 발음 분석 (텍스트 가이드 only) — {"weak_words": [...]} JSON
+    pronunciation_payload: Mapped[Optional[Any]] = mapped_column(JSON, nullable=True)
+
     # 메타
     judge_runs: Mapped[Optional[Any]] = mapped_column(JSON, nullable=True)
     judge_variance: Mapped[Optional[Any]] = mapped_column(JSON, nullable=True)

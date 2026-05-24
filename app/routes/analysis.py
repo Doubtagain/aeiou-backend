@@ -13,7 +13,9 @@ from ..schemas import (
     CoachingTipOut,
     ComparisonOut,
     PendingOut,
+    PronunciationOut,
     RewriteOut,
+    WeakWordOut,
 )
 
 router = APIRouter(tags=["analysis"])
@@ -33,6 +35,21 @@ def get_analysis(session_id: str, db: OrmSession = Depends(get_db)):
 @router.get("/sessions/{session_id}/rewrites", response_model=list[RewriteOut])
 def get_rewrites(session_id: str, db: OrmSession = Depends(get_db)):
     return db.query(RecommendedRewrite).filter_by(session_id=session_id).all()
+
+
+@router.get("/sessions/{session_id}/pronunciation", response_model=PronunciationOut)
+def get_pronunciation(session_id: str, db: OrmSession = Depends(get_db)):
+    """v3 차별 기능: 발음 분석 결과 — weak_words 리스트.
+
+    파이프라인이 분석을 마쳤다면 pronunciation_payload에 저장된 값을 그대로 반환한다.
+    분석 전이면 404.
+    """
+    row = db.get(SessionAnalysis, session_id)
+    if row is None:
+        raise HTTPException(status_code=404, detail="no analysis yet")
+    payload = row.pronunciation_payload or {}
+    weak = payload.get("weak_words") or []
+    return PronunciationOut(weak_words=[WeakWordOut(**w) for w in weak])
 
 
 @router.get("/sessions/{session_id}/coaching", response_model=CoachingOut)

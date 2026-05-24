@@ -19,6 +19,7 @@ from ..situations import load_situation
 from .compare import compare_sessions
 from .fillers import analyze_fillers
 from .judge import judge_flow, judge_improv, judge_variance_report
+from .pronunciation import analyze_pronunciation
 from .repetition import detect_repetitions
 from .rewrite import recommend_rewrites
 from .signal_metrics import (
@@ -178,13 +179,17 @@ async def run_analysis(
             },
         )
 
+        # 6b. v3 차별 기능: 발음 분석 (기본 ON, 토글 없음)
+        pronunciation = await analyze_pronunciation(turns, llm)
+        analysis.pronunciation_payload = pronunciation
+
         # 7. improvement rewrites (uses the freshly-scored analysis)
         rewrites = await recommend_rewrites(session, analysis, llm)
 
         # 8. persist + JSON dump
         payload = _build_payload(
             session, analysis, delivery, vocab, filler_details, variance,
-            answer_lengths, repetitions,
+            answer_lengths, repetitions, pronunciation,
         )
         payload["rewrites"] = [
             {"source_turn_id": r.source_turn_id, "original_text": r.original_text, "variants": r.rewrites}
@@ -227,7 +232,7 @@ async def analyze_and_compare(
 
 def _build_payload(
     session, analysis, delivery, vocab, filler_details, variance,
-    answer_lengths, repetitions,
+    answer_lengths, repetitions, pronunciation,
 ) -> dict:
     return {
         "session_id": session.id,
@@ -278,6 +283,7 @@ def _build_payload(
         "vocab": vocab,
         "fillers": filler_details,
         "repeated_phrases": repetitions.get("repeated_phrases", []),  # MIGRATION raw_payload 요구
+        "pronunciation": pronunciation,
         "judge": {
             "runs": analysis.judge_runs,
             "variance": variance,

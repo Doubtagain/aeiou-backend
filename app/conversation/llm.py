@@ -234,6 +234,8 @@ class MockLLM:
             return self._compare(data)
         if "scores" in keys:
             return self._judge(data)
+        if "weak_words" in keys:
+            return self._weak_words(data)
         return {k: None for k in keys}
 
     # -- dialogue script generation (synth_data) --
@@ -299,6 +301,42 @@ class MockLLM:
                 }
             )
         return {"rewrites": rewrites}
+
+    # -- v3 pronunciation: heuristic mock weak-word picker --
+    def _weak_words(self, data: Any) -> dict:
+        turns = (data or {}).get("turns", []) if isinstance(data, dict) else []
+        # 초성 자모 추출용 (한글 음절 → 초성 19개)
+        _INITIALS = "ㄱㄲㄴㄷㄸㄹㅁㅂㅃㅅㅆㅇㅈㅉㅊㅋㅌㅍㅎ"
+
+        def first_initial(word: str) -> str:
+            if not word:
+                return ""
+            ch = word[0]
+            if "가" <= ch <= "힣":
+                return _INITIALS[(ord(ch) - 0xAC00) // (21 * 28)]
+            return ch
+
+        out: list[dict] = []
+        for t in turns:
+            text = (t.get("text") if isinstance(t, dict) else "") or ""
+            toks = [w for w in _tokenize_ko(text) if len(w) >= 2]
+            if not toks:
+                continue
+            longest = max(toks, key=len)
+            initial = first_initial(longest) or longest[0]
+            out.append(
+                {
+                    "turn_index": int(t.get("turn_index", 0)) if isinstance(t, dict) else 0,
+                    "word": longest,
+                    "phoneme_focus": initial,
+                    "articulation_tip": (
+                        f"'{initial}' 음을 첫 음절에서 또렷이 짚고, 끝 음절까지 호흡을 유지해 발음해보세요."
+                    ),
+                }
+            )
+            if len(out) >= 3:
+                break
+        return {"weak_words": out}
 
     # -- retake comparison --
     def _compare(self, data: Any) -> dict:
