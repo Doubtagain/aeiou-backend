@@ -122,3 +122,17 @@ class ComparisonOut(BaseModel):
     better_side: str
     diff_summary: Optional[Any] = None
     llm_verdict: Optional[str] = None
+
+
+# ---------- v3: 표준 코칭 카드 ----------
+class CoachingTipOut(BaseModel):
+    id: str
+    title: str
+    body: str
+
+
+class CoachingOut(BaseModel):
+    """GET /sessions/{id}/coaching — 규칙 기반 팁 + LLM 재작성을 한 번에."""
+
+    tips: list[CoachingTipOut] = Field(default_factory=list)
+    rewrites: list[RewriteOut] = Field(default_factory=list)
