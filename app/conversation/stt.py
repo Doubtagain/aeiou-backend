@@ -36,15 +36,39 @@ def _even_words(text: str, total_ms: int) -> list[Word]:
 
 
 class WhisperSTT:
-    """Real OpenAI Whisper adapter — implemented in step 8."""
+    """Real OpenAI Whisper adapter (whisper-1). Verbatim mode requests
+    verbose_json + word timestamps; otherwise just the text."""
 
     def __init__(self, api_key: str, model: str | None = None) -> None:
-        self.api_key = api_key
-        self.model = model or settings.openai_stt_model
-        self._client = None
+        from openai import AsyncOpenAI
 
-    async def transcribe(self, audio_path: Path, *, verbatim: bool = False) -> Transcript:  # pragma: no cover
-        raise NotImplementedError("WhisperSTT.transcribe is implemented in step 8")
+        self.model = model or settings.openai_stt_model
+        self.client = AsyncOpenAI(api_key=api_key)
+
+    async def transcribe(self, audio_path: Path, *, verbatim: bool = False) -> Transcript:
+        path = Path(audio_path)
+        with open(path, "rb") as fh:
+            if verbatim:
+                resp = await self.client.audio.transcriptions.create(
+                    model=self.model,
+                    file=fh,
+                    language="ko",
+                    response_format="verbose_json",
+                    timestamp_granularities=["word"],
+                )
+                words = [
+                    Word(text=w.word, start_ms=int(w.start * 1000), end_ms=int(w.end * 1000))
+                    for w in (getattr(resp, "words", None) or [])
+                ]
+                return Transcript(
+                    text=getattr(resp, "text", ""),
+                    words=words,
+                    language=getattr(resp, "language", "ko"),
+                )
+            resp = await self.client.audio.transcriptions.create(
+                model=self.model, file=fh, language="ko"
+            )
+        return Transcript(text=getattr(resp, "text", "") or "", words=[])
 
 
 class MockSTT:

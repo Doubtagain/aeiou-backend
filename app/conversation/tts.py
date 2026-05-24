@@ -21,15 +21,25 @@ class TTS(Protocol):
 
 
 class OpenAITTS:
-    """Real OpenAI gpt-4o-mini-tts adapter — implemented in step 8."""
+    """Real OpenAI gpt-4o-mini-tts adapter. Streams a WAV to disk so downstream
+    soundfile-based metrics can read it directly."""
 
     def __init__(self, api_key: str, model: str | None = None) -> None:
-        self.api_key = api_key
-        self.model = model or settings.openai_tts_model
-        self._client = None
+        from openai import AsyncOpenAI
 
-    async def synthesize(self, text: str, voice: str, out_path: Path) -> None:  # pragma: no cover
-        raise NotImplementedError("OpenAITTS.synthesize is implemented in step 8")
+        self.model = model or settings.openai_tts_model
+        self.client = AsyncOpenAI(api_key=api_key)
+
+    async def synthesize(self, text: str, voice: str, out_path: Path) -> None:
+        out_path = Path(out_path)
+        out_path.parent.mkdir(parents=True, exist_ok=True)
+        async with self.client.audio.speech.with_streaming_response.create(
+            model=self.model,
+            voice=voice,
+            input=text,
+            response_format="wav",
+        ) as resp:
+            await resp.stream_to_file(str(out_path))
 
 
 class MockTTS:

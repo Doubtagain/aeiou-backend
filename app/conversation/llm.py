@@ -125,20 +125,58 @@ def _dim_score(dim: str, base: float) -> float:
 
 
 # --------------------------------------------------------------------------- #
-# Real adapter — implemented in step 8 (lazy SDK import so this module imports
-# without the `anthropic` package installed).
+# Real adapter — claude-sonnet-4-6 via the Anthropic SDK (lazy import so this
+# module loads without the `anthropic` package installed).
 # --------------------------------------------------------------------------- #
+def _text_from(msg: Any) -> str:
+    parts = []
+    for block in getattr(msg, "content", []) or []:
+        text = getattr(block, "text", None)
+        if text:
+            parts.append(text)
+    return "".join(parts)
+
+
 class ClaudeLLM:
+    # NOTE (H1): chat_json uses temperature 0.4 (NOT 0) so judge variance is
+    # measurable. Conversation chat uses 0.7 for natural replies.
     def __init__(self, api_key: str, model: str | None = None) -> None:
-        self.api_key = api_key
+        from anthropic import AsyncAnthropic
+
         self.model = model or settings.anthropic_model
-        self._client = None  # created lazily in step 8
+        self.client = AsyncAnthropic(api_key=api_key)
 
-    async def chat(self, system: str, messages: list[Message]) -> str:  # pragma: no cover
-        raise NotImplementedError("ClaudeLLM.chat is implemented in step 8")
+    async def chat(self, system: str, messages: list[Message]) -> str:
+        msg = await self.client.messages.create(
+            model=self.model,
+            max_tokens=1024,
+            temperature=0.7,
+            system=system,
+            messages=[{"role": m.role, "content": m.content} for m in messages],
+        )
+        return _text_from(msg)
 
-    async def chat_json(self, system: str, user: str, schema: dict) -> dict:  # pragma: no cover
-        raise NotImplementedError("ClaudeLLM.chat_json is implemented in step 8")
+    async def chat_json(self, system: str, user: str, schema: dict) -> dict:
+        sys = system + " 반드시 유효한 JSON 객체 하나만 출력한다."
+        prompt = user + "\n\n" + schema_instruction(schema)
+        for attempt in range(2):
+            msg = await self.client.messages.create(
+                model=self.model,
+                max_tokens=2048,
+                temperature=0.4,
+                system=sys,
+                messages=[{"role": "user", "content": prompt}],
+            )
+            data = extract_json_block(_text_from(msg))
+            if isinstance(data, dict):
+                return data
+            prompt = (
+                user
+                + "\n\n"
+                + schema_instruction(schema)
+                + "\n직전 응답이 JSON이 아니었다. 코드펜스 없이 JSON 객체만 출력하라."
+            )
+        return {}
 
 
 # --------------------------------------------------------------------------- #
