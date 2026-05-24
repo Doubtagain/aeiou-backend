@@ -33,46 +33,42 @@ class LLM(Protocol):
 # Shared helpers (used by both real and mock impls)
 # --------------------------------------------------------------------------- #
 def extract_json_block(text: str) -> Optional[Any]:
-    """Return the first balanced top-level JSON value in `text`, or None.
+    """Return the first *parseable* balanced JSON value in `text`, or None.
 
-    Quote/escape aware so braces inside strings don't fool the depth counter.
+    Tries every '{'/'[' opener in turn so stray brackets in surrounding prose
+    (e.g. a label like "[입력]") don't defeat extraction. Quote/escape aware.
     """
     if not text:
         return None
-    start = None
-    for i, ch in enumerate(text):
-        if ch in "{[":
-            start = i
-            break
-    if start is None:
-        return None
-    opener = text[start]
-    closer = "}" if opener == "{" else "]"
-    depth = 0
-    in_str = False
-    esc = False
-    for i in range(start, len(text)):
-        ch = text[i]
-        if in_str:
-            if esc:
-                esc = False
-            elif ch == "\\":
-                esc = True
-            elif ch == '"':
-                in_str = False
+    for start in range(len(text)):
+        opener = text[start]
+        if opener not in "{[":
             continue
-        if ch == '"':
-            in_str = True
-        elif ch == opener:
-            depth += 1
-        elif ch == closer:
-            depth -= 1
-            if depth == 0:
-                blob = text[start : i + 1]
-                try:
-                    return json.loads(blob)
-                except json.JSONDecodeError:
-                    return None
+        closer = "}" if opener == "{" else "]"
+        depth = 0
+        in_str = False
+        esc = False
+        for i in range(start, len(text)):
+            ch = text[i]
+            if in_str:
+                if esc:
+                    esc = False
+                elif ch == "\\":
+                    esc = True
+                elif ch == '"':
+                    in_str = False
+                continue
+            if ch == '"':
+                in_str = True
+            elif ch == opener:
+                depth += 1
+            elif ch == closer:
+                depth -= 1
+                if depth == 0:
+                    try:
+                        return json.loads(text[start : i + 1])
+                    except json.JSONDecodeError:
+                        break  # malformed → try the next opener
     return None
 
 
