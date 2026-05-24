@@ -21,6 +21,9 @@ ENV/
 *.pem
 *.key
 
+# Internal-only docs (not for public repo)
+internal/
+
 # DB
 *.db
 *.sqlite
