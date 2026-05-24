@@ -26,6 +26,9 @@ python scripts/demo_run.py
 
 키 없이 전 구간을 오프라인으로 돌리려면 모든 명령에 `--mock`을 붙이거나 `USE_MOCKS=1`을 설정한다.
 
+> **v3 스키마 변경 후 DB 재생성** (Alembic 없이 `create_all` 환경):
+> `rm aeiou.db && python -c "from app.db import init_db; init_db()"`
+
 ## 테스트
 
 ```bash

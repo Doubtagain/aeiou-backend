@@ -60,6 +60,12 @@ def _metrics(an) -> dict:
             "silence_ratio": an.silence_ratio,
             "tail_clarity": an.tail_clarity,
         },
+        "answer_length": {
+            "syllable_mean": an.answer_length_syllable_mean,
+            "sec_mean": an.answer_length_sec_mean,
+            "sec_stdev": an.answer_length_sec_stdev,
+            "too_long_turn_count": an.too_long_turn_count,
+        },
     }
 
 

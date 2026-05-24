@@ -80,6 +80,87 @@ def compute_spm(turns: list[Any]) -> tuple[float, float]:
 
 
 # --------------------------------------------------------------------------- #
+# Answer length (v3) — 사용자 턴별 길이 + 카테고리 임계값 초과 카운트
+# --------------------------------------------------------------------------- #
+# 카테고리별 디폴트(초). YAML의 answer_length_guideline_sec가 우선.
+_DEFAULT_ANSWER_LEN_SEC: dict[str, float] = {
+    "emotional": 30.0,
+    "interview": 60.0,
+    "presentation": 90.0,
+    "business": 60.0,
+}
+
+
+def resolve_answer_length_threshold_sec(
+    category: Optional[str], override_sec: Any = None
+) -> Optional[float]:
+    """YAML 명시값 > 카테고리 디폴트 > None."""
+    if override_sec is not None:
+        try:
+            return float(override_sec)
+        except (TypeError, ValueError):
+            pass
+    if category is None:
+        return None
+    val = _DEFAULT_ANSWER_LEN_SEC.get(category)
+    return float(val) if val is not None else None
+
+
+def compute_answer_lengths(
+    turns: list[Any], *, threshold_sec: Optional[float] = None
+) -> dict:
+    """사용자 턴별 답변 길이(음절·어절·초)와 통계.
+
+    Returns:
+        per_turn: [{turn_index, syllables, words, sec}, ...]
+        syllable_mean / syllable_stdev
+        sec_mean / sec_stdev
+        too_long_turns: turn_index 리스트 (threshold_sec 초과; None이면 항상 []).
+        threshold_sec: 적용된 임계값 (또는 None)
+    """
+    per_turn: list[dict] = []
+    for t in _user_turns(turns):
+        text = _turn_text(t)
+        dur_ms = _turn_duration_ms(t) or 0.0
+        per_turn.append(
+            {
+                "turn_index": int(getattr(t, "turn_index", 0)),
+                "syllables": count_hangul_syllables(text),
+                "words": len([w for w in (text or "").split() if w]),
+                "sec": round(dur_ms / 1000.0, 3),
+            }
+        )
+
+    if not per_turn:
+        return {
+            "per_turn": [],
+            "syllable_mean": 0.0,
+            "syllable_stdev": 0.0,
+            "sec_mean": 0.0,
+            "sec_stdev": 0.0,
+            "too_long_turns": [],
+            "threshold_sec": threshold_sec,
+        }
+
+    syll = [p["syllables"] for p in per_turn]
+    secs = [p["sec"] for p in per_turn]
+    too_long = (
+        [p["turn_index"] for p in per_turn if p["sec"] > threshold_sec]
+        if threshold_sec is not None
+        else []
+    )
+    return {
+        "per_turn": per_turn,
+        "syllable_mean": round(statistics.fmean(syll), 2),
+        "syllable_stdev": round(statistics.pstdev(syll), 2) if len(syll) > 1 else 0.0,
+        "sec_mean": round(statistics.fmean(secs), 2),
+        "sec_stdev": round(statistics.pstdev(secs), 2) if len(secs) > 1 else 0.0,
+        "too_long_turns": too_long,
+        "threshold_sec": threshold_sec,
+    }
+
+
+# --------------------------------------------------------------------------- #
 # F0
 # --------------------------------------------------------------------------- #
 def _autocorr(frame: np.ndarray) -> np.ndarray:

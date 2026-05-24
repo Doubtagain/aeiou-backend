@@ -119,6 +119,12 @@ class SessionAnalysis(Base):
     silence_ratio: Mapped[Optional[float]] = mapped_column(Float, nullable=True)
     tail_clarity: Mapped[Optional[float]] = mapped_column(Float, nullable=True)
 
+    # v3: 답변 길이 (카테고리별 임계값 초과 카운트 포함)
+    answer_length_syllable_mean: Mapped[Optional[float]] = mapped_column(Float, nullable=True)
+    answer_length_sec_mean: Mapped[Optional[float]] = mapped_column(Float, nullable=True)
+    answer_length_sec_stdev: Mapped[Optional[float]] = mapped_column(Float, nullable=True)
+    too_long_turn_count: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)
+
     # 메타
     judge_runs: Mapped[Optional[Any]] = mapped_column(JSON, nullable=True)
     judge_variance: Mapped[Optional[Any]] = mapped_column(JSON, nullable=True)

@@ -85,6 +85,12 @@ class AnalysisOut(BaseModel):
     silence_ratio: Optional[float] = None
     tail_clarity: Optional[float] = None
 
+    # v3 — 답변 길이
+    answer_length_syllable_mean: Optional[float] = None
+    answer_length_sec_mean: Optional[float] = None
+    answer_length_sec_stdev: Optional[float] = None
+    too_long_turn_count: Optional[int] = None
+
     judge_runs: Optional[Any] = None
     judge_variance: Optional[Any] = None
 

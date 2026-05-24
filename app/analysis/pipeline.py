@@ -15,11 +15,16 @@ from ..conversation.llm import get_llm
 from ..conversation.stt import get_stt
 from ..db import session_scope
 from ..models import RecommendedRewrite, Session, SessionAnalysis
+from ..situations import load_situation
 from .compare import compare_sessions
 from .fillers import analyze_fillers
 from .judge import judge_flow, judge_improv, judge_variance_report
 from .rewrite import recommend_rewrites
-from .signal_metrics import compute_session_delivery
+from .signal_metrics import (
+    compute_answer_lengths,
+    compute_session_delivery,
+    resolve_answer_length_threshold_sec,
+)
 from .transcript import reprocess_verbatim
 
 if TYPE_CHECKING:
@@ -96,6 +101,17 @@ async def run_analysis(
         # 3. signal metrics (SPM / F0 / silence / tail / latency)
         delivery = compute_session_delivery(turns)
 
+        # 3b. v3: 답변 길이 — 카테고리(=상황 YAML)별 임계값으로 too_long 판정
+        try:
+            situation = load_situation(session.situation_id)
+        except KeyError:
+            situation = {}
+        ans_threshold = resolve_answer_length_threshold_sec(
+            situation.get("category"),
+            situation.get("answer_length_guideline_sec"),
+        )
+        answer_lengths = compute_answer_lengths(turns, threshold_sec=ans_threshold)
+
         # 4. fillers — aggregate over user turns
         total_fillers, total_tokens, filler_details = 0, 0, []
         for t in user_turns:
@@ -140,6 +156,11 @@ async def run_analysis(
             f0_stdev=delivery["f0_stdev"],
             silence_ratio=delivery["silence_ratio"],
             tail_clarity=delivery["tail_clarity"],
+            # v3 — 답변 길이
+            answer_length_syllable_mean=answer_lengths["syllable_mean"],
+            answer_length_sec_mean=answer_lengths["sec_mean"],
+            answer_length_sec_stdev=answer_lengths["sec_stdev"],
+            too_long_turn_count=len(answer_lengths["too_long_turns"]),
             judge_runs={"flow": flow.runs, "improv": improv.runs},
             judge_variance={
                 "flow": flow.stdev,
@@ -152,7 +173,9 @@ async def run_analysis(
         rewrites = await recommend_rewrites(session, analysis, llm)
 
         # 8. persist + JSON dump
-        payload = _build_payload(session, analysis, delivery, vocab, filler_details, variance)
+        payload = _build_payload(
+            session, analysis, delivery, vocab, filler_details, variance, answer_lengths
+        )
         payload["rewrites"] = [
             {"source_turn_id": r.source_turn_id, "original_text": r.original_text, "variants": r.rewrites}
             for r in rewrites
@@ -192,7 +215,9 @@ async def analyze_and_compare(
     return analysis
 
 
-def _build_payload(session, analysis, delivery, vocab, filler_details, variance) -> dict:
+def _build_payload(
+    session, analysis, delivery, vocab, filler_details, variance, answer_lengths
+) -> dict:
     return {
         "session_id": session.id,
         "situation_id": session.situation_id,
@@ -222,6 +247,15 @@ def _build_payload(session, analysis, delivery, vocab, filler_details, variance)
                 "f0_stdev": analysis.f0_stdev,
                 "silence_ratio": analysis.silence_ratio,
                 "tail_clarity": analysis.tail_clarity,
+            },
+            "answer_length": {
+                "syllable_mean": analysis.answer_length_syllable_mean,
+                "sec_mean": analysis.answer_length_sec_mean,
+                "sec_stdev": analysis.answer_length_sec_stdev,
+                "too_long_turn_count": analysis.too_long_turn_count,
+                "threshold_sec": answer_lengths.get("threshold_sec"),
+                "per_turn": answer_lengths.get("per_turn", []),
+                "too_long_turns": answer_lengths.get("too_long_turns", []),
             },
         },
         "vocab": vocab,

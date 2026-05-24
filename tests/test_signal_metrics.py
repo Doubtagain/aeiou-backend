@@ -85,3 +85,31 @@ def test_response_latencies():
     assert lat["n"] == 2
     assert 300.0 <= lat["p50_ms"] <= 500.0
     assert lat["p90_ms"] >= lat["p50_ms"]
+
+
+def test_answer_lengths_per_turn_and_too_long():
+    # 1번 턴: 2초, 2번 턴: 70초(임계 60s 초과), 3번 턴: 5초
+    turns = [
+        _user_turn("안녕하세요", 0, 2000),               # 5음절 / 1어절 / 2.0s
+        _user_turn("저는 발표를 시작합니다", 3000, 73000),  # 10음절 / 3어절 / 70.0s
+        _user_turn("끝", 80000, 85000),                  # 1음절 / 1어절 / 5.0s
+    ]
+    res = sm.compute_answer_lengths(turns, threshold_sec=60.0)
+    assert [p["turn_index"] for p in res["per_turn"]] == [0, 0, 0]  # SimpleNamespace 디폴트
+    assert [p["syllables"] for p in res["per_turn"]] == [5, 10, 1]
+    assert [p["words"] for p in res["per_turn"]] == [1, 3, 1]
+    assert [p["sec"] for p in res["per_turn"]] == [2.0, 70.0, 5.0]
+    assert res["too_long_turns"] == [0]  # 70초 턴 하나만 초과
+    assert res["sec_mean"] > 0 and res["syllable_mean"] > 0
+    assert res["threshold_sec"] == 60.0
+
+
+def test_answer_length_threshold_resolution():
+    # 디폴트 카테고리값
+    assert sm.resolve_answer_length_threshold_sec("interview") == 60.0
+    assert sm.resolve_answer_length_threshold_sec("presentation") == 90.0
+    assert sm.resolve_answer_length_threshold_sec("emotional") == 30.0
+    # YAML 명시값이 카테고리 디폴트보다 우선
+    assert sm.resolve_answer_length_threshold_sec("interview", 45) == 45.0
+    # 카테고리 모르고 override도 없으면 None
+    assert sm.resolve_answer_length_threshold_sec(None) is None
