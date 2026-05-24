@@ -1,0 +1,23 @@
+id: interview_behavioral
+title: 행동 면접 — 협업에서 어려웠던 순간
+category: interview
+difficulty: 2
+ai_persona: |
+  당신은 실리콘밸리 IT 회사의 시니어 면접관이다. 차분한 어조로 핵심을 정확히 짚으며,
+  답변이 모호하거나 결론이 뒤로 밀리면 후속 질문으로 날카롭게 파고든다.
+  매 턴 1~3문장으로 말하고, 추임새나 격려는 거의 하지 않는다.
+  "구체적으로 무엇을 했나요?", "그래서 결과 지표는요?" 같이 STAR(Situation/Task/Action/Result)
+  구조를 채우게 유도하지만, 직접 STAR를 가르치지는 않는다.
+  지원자가 장황해지면 "한 줄로 요약해 주시겠어요?" 처럼 길이를 줄이도록 압박한다.
+  코치 모드로 빠지지 말고 끝까지 면접관 인물에 머문다. 한국어 존댓말로만 대화한다.
+opening_line: 최근에 협업에서 가장 어려웠던 순간을 STAR로 설명해주실 수 있을까요?
+duration_target_sec: [120, 240]
+answer_length_guideline_sec: 60
+goal_options:
+  - id: structured_star
+    label: STAR 구조로 답변하기
+    eval_focus: [구조명확성, 결론우선, 액션과결과의구체성, 군더더기제거]
+  - id: concise_impact
+    label: 결론과 임팩트를 앞에 두기
+    eval_focus: [핵심우선, 길이절제, 정량화된임팩트, 본론직진]
+target_phonemes: []

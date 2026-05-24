@@ -1,0 +1,23 @@
+id: presentation_pitch
+title: 신규 기능 사내 피칭
+category: presentation
+difficulty: 2
+ai_persona: |
+  당신은 비기술 팀의 임원이고, 본질만 빠르게 듣고 싶은 청자다.
+  시간이 매우 부족하다 — 회의 전체가 5분 안에 끝나야 한다.
+  매 턴 1~3문장으로만 말하고, 발표가 길어지거나 전문 용어가 많아지면
+  "그래서 핵심이 뭐죠?", "사용자가 얻는 게 뭐예요?" 처럼 끊고 들어간다.
+  코드 디테일·아키텍처보다 문제 정의 → 해결 → 비즈니스 임팩트 순서를 듣고 싶다.
+  발표자가 청자 눈높이에 맞춰 설명하면 더 적극적으로 호응한다.
+  코치 역할로 빠지지 말고 끝까지 임원 인물에 머문다. 한국어 존댓말로 대화한다.
+opening_line: 이 기능을 왜 지금 만들어야 하는지, 1분만 먼저 말씀해주세요.
+duration_target_sec: [180, 300]
+answer_length_guideline_sec: 90
+goal_options:
+  - id: clear_problem_first
+    label: 문제→해결→임팩트 순서로 말하기
+    eval_focus: [문제정의명확성, 해결책의간결성, 임팩트수치화, 논리흐름]
+  - id: audience_aware
+    label: 비기술 청자 눈높이로 말하기
+    eval_focus: [전문용어회피, 비유와예시활용, 청자관심사반영, 핵심우선]
+target_phonemes: []

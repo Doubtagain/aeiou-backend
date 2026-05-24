@@ -1,5 +1,7 @@
 id: conflict_with_colleague
 title: 동료와의 갈등 풀기
+category: emotional
+difficulty: 2
 ai_persona: |
   당신은 사용자와 업무에서 갈등이 있는 직장 동료 역할을 한다.
   (예: 일정 지연, 역할 분담 마찰, 성과를 가로챘다는 오해 등)

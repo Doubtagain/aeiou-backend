@@ -7,6 +7,9 @@ from pydantic import BaseModel, ConfigDict, Field
 
 
 # ---------- content / situations ----------
+SituationCategory = Literal["emotional", "interview", "presentation", "business"]
+
+
 class GoalOptionOut(BaseModel):
     id: str
     label: str
@@ -19,6 +22,9 @@ class SituationOut(BaseModel):
     opening_line: str
     duration_target_sec: list[int]
     goal_options: list[GoalOptionOut]
+    # v3 신규: 카탈로그 분류 & 난이도. 기존 호출자 호환을 위해 기본값 제공.
+    category: SituationCategory = "emotional"
+    difficulty: int = 1
 
 
 # ---------- sessions ----------
