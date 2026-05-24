@@ -65,3 +65,38 @@ def test_all_three_tips_can_fire_together():
     )
     ids = {t.id for t in tips}
     assert ids == {"lead_with_conclusion", "shorten_answer", "clear_ending"}
+
+
+# --- v3.1: tail_clarity=0 false positive 가드 ----------------------------------
+def test_clear_ending_does_not_trigger_on_zero_tail_clarity():
+    """tail_clarity=0은 '오디오/데이터 없음'이므로 false positive 방지."""
+    tips = generate_coaching_tips(_analysis(tail_clarity=0.0))
+    assert all(t.id != "clear_ending" for t in tips)
+
+
+# --- v3.1: 카테고리별 lead_with_conclusion 임계 ---------------------------------
+def test_lead_with_conclusion_uses_emotional_threshold():
+    """emotional 카테고리는 10초 임계 → 15초 답변에도 트리거."""
+    tips = generate_coaching_tips(
+        _analysis(flow_goal_alignment=2.0, answer_length_sec_mean=15.0),
+        category="emotional",
+    )
+    assert any(t.id == "lead_with_conclusion" for t in tips)
+
+
+def test_lead_with_conclusion_uses_presentation_threshold():
+    """presentation 카테고리는 45초 임계 → 40초는 미달이라 발화하지 않음."""
+    tips = generate_coaching_tips(
+        _analysis(flow_goal_alignment=2.0, answer_length_sec_mean=40.0),
+        category="presentation",
+    )
+    assert all(t.id != "lead_with_conclusion" for t in tips)
+
+
+def test_lead_with_conclusion_unknown_category_falls_back_to_default():
+    """미상 카테고리는 default 25초 임계 (하위 호환)."""
+    tips = generate_coaching_tips(
+        _analysis(flow_goal_alignment=2.0, answer_length_sec_mean=30.0),
+        category="weird_unknown",
+    )
+    assert any(t.id == "lead_with_conclusion" for t in tips)

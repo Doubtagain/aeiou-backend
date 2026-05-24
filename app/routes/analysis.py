@@ -6,7 +6,8 @@ from sqlalchemy.orm import Session as OrmSession
 
 from ..analysis.coaching_tips import generate_coaching_tips
 from ..db import get_db
-from ..models import RecommendedRewrite, RetakeComparison, SessionAnalysis
+from ..models import RecommendedRewrite, RetakeComparison, Session, SessionAnalysis
+from ..situations import load_situation
 from ..schemas import (
     AnalysisOut,
     CoachingOut,
@@ -61,9 +62,17 @@ def get_coaching(session_id: str, db: OrmSession = Depends(get_db)):
     analysis = db.get(SessionAnalysis, session_id)
     if analysis is None:
         raise HTTPException(status_code=404, detail="no analysis yet")
+    # category 조회: session → situation YAML/payload. 못 찾으면 None(=default 임계).
+    category: str | None = None
+    sess = db.get(Session, session_id)
+    if sess is not None:
+        try:
+            category = load_situation(sess.situation_id).get("category")
+        except KeyError:
+            category = None
     tips = [
         CoachingTipOut(id=t.id, title=t.title, body=t.body)
-        for t in generate_coaching_tips(analysis)
+        for t in generate_coaching_tips(analysis, category=category)
     ]
     rewrites = db.query(RecommendedRewrite).filter_by(session_id=session_id).all()
     return CoachingOut(

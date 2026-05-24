@@ -42,7 +42,7 @@ python scripts/demo_run.py
 ## 테스트
 
 ```bash
-pytest        # 외부 API 호출 없이 모킹으로 통과 (현재 31 passed)
+pytest        # 외부 API 호출 없이 모킹으로 통과 (현재 35 passed)
 ```
 
 ## 가설별 검증 방법
@@ -61,7 +61,7 @@ pytest        # 외부 API 호출 없이 모킹으로 통과 (현재 31 passed)
 
 ## 합격 기준 (성공 정의)
 
-1. `pytest`가 **실 API 호출 없이** 통과 → ✅ **충족** (31 passed, 전부 Mock)
+1. `pytest`가 **실 API 호출 없이** 통과 → ✅ **충족** (35 passed, 전부 Mock)
 2. `python scripts/demo_run.py`가 **실 API로** 끝까지 돌아 분석 JSON·비교 verdict 출력 → ⏳ **미실행** (아래 참조)
 3. `eval_*.py` 결과가 합격 기준 충족 → ⏳ **실 API 미실행**; mock 모드에서는 H1/H4/H5/H6 모두 PASS
 
@@ -71,7 +71,7 @@ pytest        # 외부 API 호출 없이 모킹으로 통과 (현재 31 passed)
 
 ```
 $ pytest
-31 passed
+35 passed
 ```
 - `test_fillers` — 사전 매칭 + 다의어 처리 (의미로 쓰인 "그"는 필러로 분류되지 않음)
 - `test_signal_metrics` — 1초 사인파(150Hz)에서 F0≈150, SPM/침묵/끝음/지연 + 답변 길이 통계·임계값 분해

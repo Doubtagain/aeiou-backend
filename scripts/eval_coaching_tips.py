@@ -55,7 +55,7 @@ async def _one(situation_id: str, goal_id: str, category: str, expected: set[str
     out_dir = f"data/audio/eval_coaching_{category}_bad"
     sid = await synth_session(situation_id, goal_id, "bad", out_dir)
     an = await run_analysis(sid)
-    tips = generate_coaching_tips(an)
+    tips = generate_coaching_tips(an, category=category)
     fired = sorted(t.id for t in tips)
     passed_required = (category in {"emotional", "interview"}) and bool(set(fired) & expected)
     return {

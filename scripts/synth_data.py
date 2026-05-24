@@ -32,7 +32,10 @@ MAX_TURNS = 20
 
 SCRIPT_SYSTEM = (
     "당신은 한국어 대화 시나리오 작가다. 주어진 상황과 목표에 맞는 현실적인 연습 대화를 쓴다. "
-    "각 발화는 1~3문장의 자연스러운 구어체로 작성한다."
+    "각 발화는 1~3문장의 자연스러운 구어체로 작성한다. "
+    "이 대화는 음성 코칭 PoC의 합성 검증 데이터다 — quality=bad일 때는 "
+    "실제 사용자의 흔한 실수 패턴을 의도적으로, 강하게 재현해야 한다. "
+    "반드시 요청된 턴 수(8~16턴, AI와 사용자 번갈아)를 채워라. 짧게 끝내지 말 것."
 )
 
 _QUALITY_NOTE = {
@@ -45,25 +48,36 @@ _QUALITY_NOTE = {
 }
 
 # v3 Step 9: bad 모드에 카테고리별 패턴을 덧붙여 H5(코칭 카드) 검증 신호를 강화.
+# v3.1: 각 카테고리의 코칭 카드 트리거(lead_with_conclusion, shorten_answer, clear_ending)가
+# 실제로 발화되도록 사용자 발화 길이·끝음·결론 위치를 명시적으로 지시.
 _BAD_CATEGORY_NOTE = {
     "emotional": (
         " 정서 상황답게 필러를 많이 섞고, 본심을 회피하며 둘러말하라. "
-        "끝음을 흐리게 마무리하라."
+        "사용자 발화 한 턴을 12초 이상(약 2~3문장) 늘어뜨려라. "
+        "끝음을 흐리게(예: '...뭐 그런 거지', '...어쩌라고...') 마무리하라."
     ),
     "interview": (
         " 면접 답변은 결론 없이 장황하게, 두서없이 이어가라. "
-        "한 답변이 길어지도록(STAR의 Action·Result 부분을 늘어놓듯) 늘어뜨려라. "
-        "결론은 끝까지 등장시키지 말라."
+        "**사용자 발화 한 턴을 35초 이상**(약 4~6문장) 길게 늘어뜨려라. "
+        "(STAR의 Action·Result 부분을 늘어놓듯) 'A인데 B하기도 하지만 C라서 D 같기도 한데...' "
+        "식으로 끝없이 이어붙이고, 결론은 끝까지 등장시키지 말라."
     ),
     "presentation": (
         " 발표는 청자(임원)의 관심사를 무시하고 기술 디테일에 몰두하라. "
-        "각 문장의 끝을 흐리게 말끝 흐리듯 마무리하라."
+        "**사용자 발화 한 턴을 50초 이상**(약 5~7문장) 길게 늘어뜨리며 "
+        "핵심은 마지막에 짧게 던지듯이 마무리하라. "
+        "각 문장의 끝을 '...그런 거고요', '...뭐 그렇습니다'처럼 흐리게 말끝 흐리듯 마무리하라."
     ),
     "business": (
         " 비즈니스 요청은 핵심부터 말하지 말고 배경설명을 길게 늘어놓아라. "
+        "**사용자 발화 한 턴을 30초 이상**(약 3~4문장) 두고, "
         "결론은 가장 마지막에만 짧게 언급하라."
     ),
 }
+
+# 합성 대화에서 (사용자+AI 합쳐) 이 미만이면 재시도. 너무 짧으면 분석이 의미 없어진다.
+_MIN_DIALOGUE_TURNS = 4
+_SYNTH_MAX_ATTEMPTS = 2
 
 
 def _dur_ms(path: Path) -> int:
@@ -123,14 +137,39 @@ async def synth_session(
     llm = llm or get_llm()
     tts = tts or get_tts()
 
-    # 1. generate the dialogue script
+    # 1. generate the dialogue script — retry once on short returns, then abort.
     schema = {
         "dialogue": "[{\"speaker\": \"user\"|\"ai\", \"text\": str}, ...] 배열 (사용자 발화부터 시작)"
     }
-    res = await llm.chat_json(SCRIPT_SYSTEM, _build_user(situation, goal, quality), schema)
-    dialogue = [d for d in (res or {}).get("dialogue", []) if d.get("text")]
-    if len(dialogue) < 2:
-        print("WARNING: LLM returned a very short dialogue; proceeding anyway.", file=sys.stderr)
+    dialogue: list[dict] = []
+    last_err: Exception | None = None
+    for attempt in range(_SYNTH_MAX_ATTEMPTS):
+        try:
+            res = await llm.chat_json(
+                SCRIPT_SYSTEM, _build_user(situation, goal, quality), schema
+            )
+            dialogue = [d for d in (res or {}).get("dialogue", []) if d.get("text")]
+            if len(dialogue) >= _MIN_DIALOGUE_TURNS:
+                break
+            print(
+                f"WARNING: LLM returned {len(dialogue)} dialogue turns "
+                f"(need ≥ {_MIN_DIALOGUE_TURNS}); attempt {attempt + 1}/"
+                f"{_SYNTH_MAX_ATTEMPTS} ...",
+                file=sys.stderr,
+            )
+        except Exception as exc:  # noqa: BLE001
+            last_err = exc
+            print(
+                f"WARNING: synth attempt {attempt + 1} raised: {exc!r}",
+                file=sys.stderr,
+            )
+    if len(dialogue) < _MIN_DIALOGUE_TURNS:
+        suffix = f" last error: {last_err!r}" if last_err else ""
+        raise RuntimeError(
+            f"synth_session aborted: only {len(dialogue)} dialogue turns after "
+            f"{_SYNTH_MAX_ATTEMPTS} attempts. situation={situation_id}, "
+            f"quality={quality}.{suffix}"
+        )
 
     # opening AI line (from YAML) + generated turns, capped at MAX_TURNS
     full = [{"speaker": "ai", "text": situation["opening_line"]}]
